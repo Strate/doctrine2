@@ -1,6 +1,5 @@
 {
-    "name": "strate/doctrine-orm",
-    "replace": "doctrine/orm",
+    "name": "doctrine/orm",
     "type": "library",
     "description": "Object-Relational-Mapper for PHP",
     "keywords": ["orm", "database"],
