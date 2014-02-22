@@ -23,7 +23,6 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query;
-use Doctrine\ORM\Query\QueryException;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\Mapping\ClassMetadataInfo;
 
@@ -542,7 +541,7 @@ class SqlWalker implements TreeWalker
             $sql = $this->platform->modifyLimitQuery($sql, $limit, $offset);
         }
 
-        if ($lockMode === false || $lockMode === LockMode::NONE) {
+        if ($lockMode === null || $lockMode === false || $lockMode === LockMode::NONE) {
             return $sql;
         }
 
