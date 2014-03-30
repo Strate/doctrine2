@@ -1141,7 +1141,7 @@ Scalar Hydration:
 Single Scalar Hydration
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-If you a query which returns just a single scalar value you can use
+If you have a query which returns just a single scalar value you can use
 single scalar hydration:
 
 .. code-block:: php
@@ -1363,7 +1363,7 @@ can mark a many-to-one or one-to-one association as fetched temporarily to batch
 
     <?php
     $query = $em->createQuery("SELECT u FROM MyProject\User u");
-    $query->setFetchMode("MyProject\User", "address", "EAGER");
+    $query->setFetchMode("MyProject\User", "address", \Doctrine\ORM\Mapping\ClassMetadata::FETCH_EAGER);
     $query->execute();
 
 Given that there are 10 users and corresponding addresses in the database the executed queries will look something like:
