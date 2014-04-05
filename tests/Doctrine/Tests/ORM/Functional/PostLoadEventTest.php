@@ -1,6 +1,7 @@
 <?php
 namespace Doctrine\Tests\ORM\Functional;
 
+use Doctrine\Common\Util\ClassUtils;
 use Doctrine\Tests\Models\CMS\CmsUser;
 use Doctrine\Tests\Models\CMS\CmsPhonenumber;
 use Doctrine\Tests\Models\CMS\CmsAddress;
@@ -205,6 +206,31 @@ class PostLoadEventTest extends \Doctrine\Tests\OrmFunctionalTestCase
         $phonenumbersCol->first();
     }
 
+    public function testAssociationsArePopulatedWhenEventIsFired()
+    {
+        $checkerListener = new PostLoadListener_CheckAssociationsArePopulated();
+        $this->_em->getEventManager()->addEventListener(array(Events::postLoad), $checkerListener);
+
+        $qb = $this->_em->getRepository('Doctrine\Tests\Models\CMS\CmsUser')->createQueryBuilder('u');
+        $qb->leftJoin('u.email', 'email');
+        $qb->addSelect('email');
+        $qb->getQuery()->getSingleResult();
+
+        $this->assertTrue($checkerListener->checked, 'postLoad event is not invoked');
+        $this->assertTrue($checkerListener->populated, 'Association of email is not populated in postLoad event');
+    }
+
+    public function testEventRaisedCorrectTimesWhenOtherEntityLoadedInEventHandler()
+    {
+        $eventManager = $this->_em->getEventManager();
+        $listener = new PostLoadListener_LoadEntityInEventHandler();
+        $eventManager->addEventListener(array(Events::postLoad), $listener);
+
+        $this->_em->find('Doctrine\Tests\Models\CMS\CmsUser', $this->userId);
+        $this->assertSame(1, $listener->countHandledEvents('Doctrine\Tests\Models\CMS\CmsUser'), 'Doctrine\Tests\Models\CMS\CmsUser should be handled once!');
+        $this->assertSame(1, $listener->countHandledEvents('Doctrine\Tests\Models\CMS\CmsEmail'), '\Doctrine\Tests\Models\CMS\CmsEmail should be handled once!');
+    }
+
     private function loadFixture()
     {
         $user = new CmsUser;
@@ -248,5 +274,48 @@ class PostLoadListener
     {
         // Expected to be mocked out
         echo 'Should never be called!';
+    }
+}
+
+class PostLoadListener_CheckAssociationsArePopulated
+{
+    public $checked = false;
+
+    public $populated = false;
+
+    public function postLoad(LifecycleEventArgs $event)
+    {
+        $object = $event->getObject();
+        if ($object instanceof CmsUser) {
+            if ($this->checked) {
+                throw new \RuntimeException('Expected to be one user!');
+            }
+            $this->checked = true;
+            $this->populated = null !== $object->getEmail();
+        }
+    }
+}
+
+class PostLoadListener_LoadEntityInEventHandler
+{
+    private $firedByClasses = array();
+
+    public function postLoad(LifecycleEventArgs $event)
+    {
+        $object = $event->getObject();
+        $class = ClassUtils::getClass($object);
+        if (!isset($this->firedByClasses[$class])) {
+            $this->firedByClasses[$class] = 1;
+        } else {
+            $this->firedByClasses[$class]++;
+        }
+        if ($object instanceof CmsUser) {
+            $object->getEmail()->getEmail();
+        }
+    }
+
+    public function countHandledEvents($className)
+    {
+        return isset($this->firedByClasses[$className]) ? $this->firedByClasses[$className] : 0;
     }
 }
